@@ -2,6 +2,8 @@
 - [Table of Content](#table-of-content)
   - [項目說明](#項目說明)
   - [目錄結構](#目錄結構)
+  - [Architecture](#architecture)
+  - [實際預覽圖](#實際預覽圖)
   - [Table Schema](#table-schema)
     - [Aliyun平台](#aliyun平台)
       - [CDN關係數據表](#cdn關係數據表)
@@ -21,8 +23,11 @@
 * `templates`: 基底模板放置位置 , 其他模板會繼承基底模板。****
 * `login`: 登入模塊 , 使用內建Django的用戶模型 , 使用REST_FRAMEWORK 的 JWT方式驗證API請求
 
+## Architecture
+![Architecture](Architecture.png)
 
-
+## 實際預覽圖
+![ECS](ECS.png)
 
 
 ## Table Schema
