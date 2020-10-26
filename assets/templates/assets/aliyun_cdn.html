@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}阿里雲CDN{% endblock %}
+
+{% block css %}
+
+    <!-- DataTables 所需CSS檔案 -->
+    <link rel="stylesheet" href="{% static 'adminlte-2.4.10/bower_components/datatables.net-bs/css/dataTables.bootstrap.min.css' %}">
+
+    <!-- DataTables export file所需CSS檔案 -->
+    <link rel="stylesheet" href="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/css/buttons.dataTables.min.css' %}">
+
+    <!-- DataTables editor所需CSS檔案 -->
+    <link rel="stylesheet" href="{% static 'adminlte-2.4.10/bower_components/Editor/css/editor.dataTables.css' %}">
+
+    <!-- DataTables SELECT 所需CSS檔案 -->
+    <link rel="stylesheet" href="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/css/select.dataTables.min.css' %}">
+
+
+{% endblock %}
+
+<!-- 麵包屑導覽 -->
+{% block breadcrumb %}
+    <section class="content-header">
+        <h1>
+            CDN
+            <small>阿里雲</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li>
+                <a href="{% url 'assets:dashboard' %}"><i class="fa fa-dashboard"></i>主頁</a>
+            </li>
+            <li class="active">阿里CDN</li>
+        </ol>
+    </section>
+{% endblock %}
+
+{% block content %}
+
+    <!-- 頁面內容 -->
+    <section class="content">
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="box">
+                    <div class="box-body">
+                        <table id="assets_table" class="table table-bordered table-striped table-hover dataTable" >
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>產品</th>
+                                    <th>模塊</th>
+                                    <th>用途</th>
+                                    <th>域名</th>
+                                    <th>阿里生成CNAME</th>
+                                    <th>啟用HTTPS</th>
+                                    <th>CDN類型</th>
+                                    <th>回源類型</th>
+                                    <th>回源內容</th>
+                                    <th>CDN狀態</th>
+                                    <th>所屬帳號</th>
+                                    <th>所屬地區</th>
+                                    <th>操作</th>
+
+                                </tr>
+                            </thead>
+
+                            <tfoot>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>產品</th>
+                                    <th>模塊</th>
+                                    <th>用途</th>
+                                    <th>域名</th>
+                                    <th>阿里生成CNAME</th>
+                                    <th>啟用HTTPS</th>
+                                    <th>CDN類型</th>
+                                    <th>回源類型</th>
+                                    <th>回源內容</th>
+                                    <th>CDN狀態</th>
+                                    <th>所屬帳號</th>
+                                    <th>所屬地區</th>
+                                    <th>操作</th>
+
+                                </tr>
+                            </tfoot>
+
+                        </table>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+{% endblock %}
+
+{% block script %}
+
+    <!-- JQuery & DataTables 所需JS檔案 -->
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net/js/jquery.dataTables.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js' %}"></script>
+
+    <!-- DataTables export file所需JS檔案 -->
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/dataTables.buttons.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/dataTables.select.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/buttons.flash.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/jszip.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/pdfmake.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/vfs_fonts.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/buttons.html5.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/buttons.print.min.js' %}"></script>
+
+    <!-- DataTables editor 所需JS檔案 -->
+    <script src="{% static 'adminlte-2.4.10/bower_components/Editor/js/dataTables.editor.min.js' %}"></script>
+
+
+
+
+    <!-- 自定義JS 以及 DataTable設置 -->
+    <script>
+        function purge_cdn(domain,enable_https,belong_account){
+
+            var requestURL = '/cmdb/aliyun-purge-cdn/';              // 請求後端API地址
+            var dataJSON = {};                                       // 請求夾帶的數據是使用Json格式
+
+            if(enable_https=='on'){                                  // 根據域名是否啟用https來組合刷新目錄URL
+                protocal = "https://"
+            }else if(enable_https=='off'){
+                protocal = "http://"
+            }
+
+            domain = protocal + domain + "/";                        // 串接完整URL, 因為是跟目錄刷新 , 最後需要加上反斜線
+
+            dataJSON["url"] = domain;                                // 設置要請求刷新的URL
+            dataJSON["account"] = belong_account;                    // 請求使用哪一個帳號
+            dataJSON["operation_type"] = 'refresh';                  // 使用哪一種操作(刷新 or 預熱)、該頁面需求按鈕只支持刷新
+            dataJSON["refresh_type"] = 'dir';                        // 使用哪一種刷新方式(目錄 or URL) , 該頁面需求只刷根目錄
+            dataJSON["method"] = "refresh";                          // 在aliyun-purge-cdn這隻API接收到請求時需要判斷這個請求實際用途
+                                                                     // 目前是要刷新動作 , 所以使用refresh , 如果要獲取刷新剩餘額度則使用get_quota
+                                                                     // method 與 operation_type 及 refresh_type不同 , method只用於內部API判斷
+                                                                     // 而operation_type以及refresh_type是需要由API再傳送到阿里雲API的參數
+
+            $.ajaxSetup({
+              headers: { "X-CSRFToken": '{{csrf_token}}' }
+            });
+
+            $.ajax({                                                 // 發送Ajax請求
+                url: requestURL,                                     // 請求地址
+                type: "POST",                                        // 請求方式
+                dataType: 'json',                                    // 請求數據使用JSON格式
+                data: JSON.stringify(dataJSON),                      // 將字典打包成JSON格式
+                contentType: "application/json;charset=utf-8",
+                beforeSend: function(){
+                    $("#submit_btn").prop('disabled', true);
+                },
+                success: function (returnData) {
+                    alert('根目錄刷新成功, 請等待五分鐘後全網生效');
+                    dataJSON["account"] = $("#account").val();
+                    dataJSON["method"] = "refresh";
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    alert('請求失敗, 錯誤訊息: ' + xhr.responseJSON['message'] )
+                    console.log("HTTP Status: " + xhr.responseJSON['http_status']);
+                    console.log("Error Code: " + xhr.responseJSON['error_code']);
+                    console.log("Error Message: " + xhr.responseJSON['message']);
+                    $("#submit_btn").prop('disabled', false);
+
+                }
+            });
+
+        }
+
+        $(function () {
+
+            var editor = new $.fn.dataTable.Editor( {
+            table: "#assets_table",
+            idSrc: 'id',
+            ajax: {                                                                   // 使用Ajax向後端取得數據
+                edit: {
+                    type: 'PATCH',
+                    url:  '/cmdb/api/cdn/_id_/',                                      // editor會自動將_id_轉換成選定的欄位
+                    beforeSend: function(xhr){                                        // 發送ajax請求之前先設置JWT auth 的header
+                        var token = getCookie('jwt_token');                           // 在cookie內獲取jwt_token
+                        xhr.setRequestHeader("Authorization","JWT " + token);         // 設定請求header
+                    },
+                    data:function(data){
+                        var result={};
+                        for(var i in data.data){
+                                var result=data.data[i];
+                        }
+                        return result;
+                    },
+                },
+            },
+            fields: [                                                                 // 設定要修改的欄位
+                {
+                    label: "產品",
+                    name: "product_id"
+                },{
+                    label: "模塊",
+                    name: "service_name"
+                },{
+                    label: "用途",
+                    name: "purpose"
+                }
+
+                ]
+            } );
+
+
+
+
+            // 初始化DataTable
+            var table = $('#assets_table').DataTable({
+                "ajax": {                                                                   // 使用Ajax向後端取得數據
+                    url: "/cmdb/api/cdn",                                                   // Ajax實際請求URI
+                    dataSrc: 'data',                                                        // 
+                    beforeSend: function(xhr){                                              // 發送ajax請求之前先設置JWT auth 的header
+                        var token = getCookie('jwt_token');                                 // 從cookie中取得jwt產生的token
+                        xhr.setRequestHeader("Authorization","JWT " + token);               // 設定請求header
+                    },error: function (xhr, error, code){                                   // 異常訊息提示
+                        alert( 'JWT Token was expired, please logout and login again');     // 提示重新登入
+                        window.location.replace("/logout/");                                // 將用戶登出
+                    }
+                },
+                columns: [                                                                  // 設定每一欄要對應json返回的key
+                    { data: 'id' },                                                         // id值
+                    { data: 'product_id' },                                                 // 產品ID
+                    { data: 'service_name' },                                               // 模塊名稱
+                    { data: 'purpose' },                                                    // 用途
+                    { data: 'domain_name' },                                                // CDN配置域名
+                    { data: 'cname' },                                                      // CDN服務產生對應的CNAME
+                    { data: 'ssl_protocol' },                                               // 是否啟用SSL
+                    { data: 'cdn_type' },                                                   // CDN類型(web、download、video)
+                    { data: 'source_type' },                                                // 回源類型(可能是IP、域名、OSS)
+                    { data: 'source_content' },                                             // 回源內容
+                    { data: 'domain_status' },                                              // 目前CDN是否正在使用
+                    { data: 'belong_account' },                                             // 所屬帳號
+                    { data: 'region' },                                                     // 使用地區
+                    { data: null},
+                ],
+                "paging": true,                                                             // 允許分頁
+                "iDisplayLength": 25,                                                       // 默認分頁數量
+                "lengthChange": true,                                                       // 允許改變每頁顯示的行數
+                "searching": true,                                                          // 允許內容搜索
+                "ordering": true,                                                           // 允許排序
+                "info": true,                                                               // 顯示信息
+                "autoWidth": true,                                                          // 固定寬度
+                "select": true,
+                // 設定DataTable的欄位屬性。
+                "columnDefs": [
+                    {
+                        "targets": [ 0 ],                                                   // 第七個欄位(索引從0開始)
+                        "visible": false,                                                   // 是否可見 , false
+                        "searchable": false                                                 // 是否可被搜尋 , false
+                    },
+                    {
+                        "targets": [ 7 ],                                                   // 第七個欄位(索引從0開始)
+                        "visible": false,                                                   // 是否可見 , false
+                        "searchable": false                                                 // 是否可被搜尋 , false
+                    },
+                    {
+                        "targets": [ 8 ],                                                   // 第七個欄位(索引從0開始)
+                        "visible": false,                                                   // 是否可見 , false
+                        "searchable": false                                                 // 是否可被搜尋 , false
+                    },
+                    {
+                        "targets": [ 11 ],                                                  // 第十一個欄位(索引從0開始)
+                        "visible": false,                                                   // 是否可見 , false
+                        "searchable": false                                                 // 是否可被搜尋 , false
+                    },
+                    {
+                        "targets": [ 12 ],                                                   // 第七個欄位(索引從0開始)
+                        "visible": false,                                                   // 是否可見 , false
+                        "searchable": false                                                 // 是否可被搜尋 , false
+                    },
+                    {
+                        targets: 13,                                                         // 對應欄位索引二的欄位(從0開使)
+                        render: function ( data, type, row ) {
+                            enable_https = data['ssl_protocol'];
+                            domain = data['domain_name'];                                    // 域名 , 單純放入用來顯示
+                            belong_account = data['belong_account'];
+
+
+                            let html_tag = `
+                            <a href="javascript:void(0);" class='up btn btn-default btn-xs' onclick="purge_cdn('${domain}','${enable_https}','${belong_account}');" >
+                                <i class='fa fa-refresh'></i>目錄刷新
+                            </a>
+                            `;
+
+                            return html_tag;
+                        }
+                    },
+                ],
+                dom: 'Bfrtip',
+                bom: true,
+                buttons: [
+                    {
+                        extend: 'collection',                                               // 設置導出按鈕(collection將多個button合併)
+                        text: 'Export',                                                     // 導出按鈕文字
+                        buttons: [
+                            'copy',                                                         // 複製到剪貼簿
+                            'excel',                                                        // 導出excel檔案
+                            'csv',                                                          // 導出csv檔案
+                            'pdf',                                                          // 導出pdf檔案
+                            'print'                                                         // 列印功能
+                        ]
+                    },
+                    {
+                        extend: "editSingle",                                               // 設置單筆修改 , 後端暫不支持批量修改
+                        editor: editor                                                      // 設置Datatable Editor
+                    },
+
+                ]
+            });
+
+
+        });
+
+
+
+    </script>
+
+{% endblock %}

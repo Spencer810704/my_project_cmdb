@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}阿里雲ECS{% endblock %}
+
+{% block css %}
+
+    <!-- DataTables 所需CSS檔案 -->
+    <link rel="stylesheet" href="{% static 'adminlte-2.4.10/bower_components/datatables.net-bs/css/dataTables.bootstrap.min.css' %}">
+
+    <!-- DataTables export file所需CSS檔案 -->
+    <link rel="stylesheet" href="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/css/buttons.dataTables.min.css' %}">
+
+{% endblock %}
+
+<!-- 麵包屑導覽 -->
+{% block breadcrumb %}
+    <section class="content-header">
+        <h1>
+            ECS
+            <small>阿里雲</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li>
+                <a href="{% url 'assets:dashboard' %}"><i class="fa fa-dashboard"></i>主頁</a>
+            </li>
+            <li class="active">阿里ECS</li>
+        </ol>
+    </section>
+{% endblock %}
+
+{% block content %}
+    <div style="float:left; margin-right: 20px">
+        帳號選擇
+        <select id="ddlAccount">
+          <option value="all" selected="selected">all</option>
+          <option value="pkkduty">pkkduty</option>
+          <option value="yuwodu">yuwodu</option>
+        </select>
+        <br>
+    </div>
+
+    <div style="float:left;">
+        <input type="checkbox" id="expire" name="expire" value="expire">
+        <label for="expire">顯示過期資產</label><br>
+    </div>
+
+
+
+    <!-- 頁面內容 -->
+    <section class="content">
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="box">
+                    <div class="box-body">
+                        <table id="assets_table" class="table table-bordered table-striped table-hover dataTable" >
+                            <thead>
+                                <tr>
+                                    <th>實例名稱</th>
+                                    <th>操作系統</th>
+                                    <th>發行版</th>
+                                    <th>CPU</th>
+                                    <th>內存</th>
+                                    <th>內網IP</th>
+                                    <th>公網IP</th>
+                                    <th>過期時間</th>
+                                    <th>所屬帳號</th>
+                                </tr>
+                            </thead>
+
+                            <tfoot>
+                                <tr>
+                                    <th>實例名稱</th>
+                                    <th>操作系統</th>
+                                    <th>發行版</th>
+                                    <th>CPU</th>
+                                    <th>內存</th>
+                                    <th>內網IP</th>
+                                    <th>公網IP</th>
+                                    <th>過期時間</th>
+                                    <th>所屬帳號</th>
+                                </tr>
+                            </tfoot>
+
+                        </table>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+{% endblock %}
+
+{% block script %}
+
+    <!-- JQuery & DataTables 所需JS檔案 -->
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net/js/jquery.dataTables.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js' %}"></script>
+
+    <!-- DataTables export file所需JS檔案 -->
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/dataTables.buttons.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/buttons.flash.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/jszip.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/pdfmake.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/vfs_fonts.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/buttons.html5.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/buttons.print.min.js' %}"></script>
+
+
+    <!-- 自定義JS 以及 DataTable設置 -->
+    <script>
+        $(function () {
+            var tomorrow = moment(new Date()).add(1,'days').format("YYYY-MM-DD");
+            // 剩餘天數告警設置閥值
+            var alert_threshlod = 10;
+
+            // 初始化DataTable
+            var table = $('#assets_table').DataTable({
+                "ajax": {                                                                   // 使用Ajax向後端取得數據
+                    url: "/cmdb/api/ecs_server/?expired_time=" + tomorrow,                  // 實際請求URI, 請求過期日期 >= 明天的數據
+                    dataSrc: '',                                                            //
+                    beforeSend: function(xhr){                                              // 發送ajax請求之前先設置JWT auth 的header
+                        var token = getCookie('jwt_token');                                 // 在cookie內獲取jwt_token
+                        xhr.setRequestHeader("Authorization","JWT " + token);               // 設定請求header
+                    },error: function (xhr, error, code){                                   // 異常訊息提示
+                        alert( 'JWT Token was expired, please logout and login again ' );   // 提示重新登入
+                        window.location.replace("/logout/");                                // 將用戶登出
+                    }
+                },
+                columns: [                                                                  // 設定每一欄要對應json返回的key
+                    { data: 'instance_name' },                                              // ECS雲服務器實例名稱
+                    { data: 'os_type' },                                                    // 作業系統(Linux、Windows)
+                    { data: 'os_name' },                                                    // 發行版本(CentOS、Ubuntu、、等等)
+                    { data: 'cpu' },                                                        // 處理器
+                    { data: 'memory' },                                                     // 內存
+                    { data: 'primary_ip_address' },                                         // 內網IP
+                    { data: 'public_ip_address' },                                          // 公網IP
+                    { data: 'expired_time' },                                               // 雲服務過期時間
+                    { data: 'belong_account' },                                             // 屬於哪個阿里帳號之下
+                ],
+                "paging": true,                                                             // 允許分頁
+                "iDisplayLength": 25,                                                       // 默認分頁數量
+                "lengthChange": true,                                                       // 允許改變每頁顯示的行數
+                "searching": true,                                                          // 允許內容搜索
+                "ordering": true,                                                           // 允許排序
+                "info": true,                                                               // 顯示信息
+                "autoWidth": true,                                                          // 固定寬度
+                "order": [[ 7, "asc" ]],                                                    // 依照過期時間(從0開始 , 第7列)進行排序(升序)
+                // DataTable產生每一行數據會回調的內部方法。
+                "createdRow": function( row, data, dataIndex ) {
+
+                    var date_expire = moment(data['expired_time']);                         // 定義過期時間(使用moment js庫)。
+                    var date_now = moment(new Date());                                      // 定義目前系統時間(使用moment js庫)。
+                    var remaining_days = date_expire.diff(date_now,'days');                 // 計算剩餘天數(使用moment js庫)。
+
+                    if ( remaining_days < alert_threshlod && remaining_days >= 0 ){         // 判斷(過期時間 - 現在時間)剩餘時間 < 10 天的數據紅標警示
+                        $(row).addClass('text-red');
+                    }
+                },
+                // DataTable在建立每個欄位時會回調的內部方法。
+                "columnDefs": [
+                    {
+                        render: function ( data, type, row ) {
+
+                            var date_expire = moment(data);                                 // 定義過期時間。
+                            var date_now = moment(new Date());                              // 定義目前系統時間。
+                            var remaining_days = date_expire.diff(date_now,'days');         // 計算剩餘天數。
+
+                            // 如果剩餘天數<閥值 , 快要過期 , 標注文字
+                            if ( remaining_days < alert_threshlod && remaining_days >= 0){
+                                return moment(data).utcOffset(0).format('YYYY-MM-DD HH:mm:ss') + ' ('+ "即將過期" +')';
+
+                            // 如果剩餘天數<0 , 已經過期
+                            }else if (remaining_days < 0){
+                                return moment(data).utcOffset(0).format('YYYY-MM-DD HH:mm:ss') + ' ('+ "已過期" +')';
+
+                            }else{
+                                return moment(data).utcOffset(0).format('YYYY-MM-DD HH:mm:ss');
+                            }
+
+                        },
+                        targets: 7
+                    },
+                    //{ "visible": false,  "targets": [ 3 ] }
+                ],
+                dom: 'Bfrtip',
+                bom: true,
+                buttons: [
+                    'copy',
+                    //'csv',
+                    'excel',
+                    //'pdf',
+                    //'print'
+                ]
+            });
+
+            // 當點選帳號下拉選單後觸發click事件 , reload整個表
+            var obj=document.getElementById("ddlAccount");
+
+            $("#ddlAccount").change(function () {
+                account = $("#ddlAccount").val();
+                if (account == 'all'){
+                    var uri = '/cmdb/api/ecs_server/?expired_time=' + tomorrow;
+                }else{
+                    var uri = '/cmdb/api/ecs_server/?belong_account=' + account + '&' + 'expired_time=' + tomorrow;
+                }
+                // 使用在初始化用的API URL進行reload數據
+                // table.ajax.reload();
+
+                // 使用指定API URL進行reload數據
+                table.ajax.url(uri).load();
+            });
+
+            // 顯示全部數據
+            $("#expire").click(function () {
+                var isChecked = $(this).prop("checked");
+                // 如果勾選則顯示全部數據(過期以及非過期)
+                if(isChecked){
+                    var uri = '/cmdb/api/all_ecs_server/';
+                // 否則只顯示非過期數據
+                }else {
+                    var uri = '/cmdb/api/ecs_server/?expired_time=' + tomorrow;
+                }
+                table.ajax.url(uri).load();
+
+            });
+
+
+
+        });
+
+
+
+
+    </script>
+
+{% endblock %}

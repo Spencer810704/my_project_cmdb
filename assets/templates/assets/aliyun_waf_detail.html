@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}WAF白名單{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{% static 'adminlte-2.4.10/bower_components/datatables.net-bs/css/dataTables.bootstrap.min.css' %}">
+
+{% endblock %}
+
+{% block breadcrumb %}
+    <section class="content-header">
+        <h1>
+            WAF白名單 - {{ domain }}
+        </h1>
+        <br/>
+
+    </section>
+{% endblock %}
+
+{% block content %}
+    <section class="content">
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="box">
+                    <div class="box-body">
+                        <table id="assets_table" class="table table-bordered table-striped table-hover dataTable" >
+                            <thead>
+                                <tr>
+                                    <th>白名單IP</th>
+                                    <th>備註</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                            {% for row in IP_List %}
+                                <tr>
+                                    <td>{{ row.ip_address }}</td>
+                                    <td>{{ row.acl_name }}</td>
+                                </tr>
+                            {% endfor %}
+
+                            </tbody>
+
+                            <tfoot>
+                                <tr>
+                                    <th>白名單IP</th>
+                                    <th>備註</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+{% endblock %}
+
+{% block script %}
+    // JQuery & DataTables 所需JS檔案
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net/js/jquery.dataTables.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js' %}"></script>
+
+    <script>
+
+        $(function () {
+            // 初始化DataTable
+            $('#assets_table').DataTable({
+                "paging": true,                                                             // 允許分頁
+                "lengthChange": true,                                                       // 允許改變每頁顯示的行數
+                "searching": true,                                                          // 允許內容搜索
+                "ordering": true,                                                           // 允許排序
+                "info": true,                                                               // 顯示信息
+                "autoWidth": true,                                                          // 固定寬度
+                "order": [[ 1, "asc" ]],                                                    // 依照過期時間(從0開始 , 第7列)進行排序(升序)
+            });
+
+        });
+    </script>
+
+
+
+{% endblock %}

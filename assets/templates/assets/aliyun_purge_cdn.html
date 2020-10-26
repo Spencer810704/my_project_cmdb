@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}阿里雲CDN刷新預熱{% endblock %}
+
+{% block css %}
+
+    <!-- DataTables 所需CSS檔案 -->
+    <link rel="stylesheet"
+          href="{% static 'adminlte-2.4.10/bower_components/datatables.net-bs/css/dataTables.bootstrap.min.css' %}">
+
+    <!-- DataTables export file所需CSS檔案 -->
+    <link rel="stylesheet"
+          href="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/css/buttons.dataTables.min.css' %}">
+
+    <!-- DataTables editor所需CSS檔案 -->
+    <link rel="stylesheet" href="{% static 'adminlte-2.4.10/bower_components/Editor/css/editor.dataTables.css' %}">
+
+    <!-- DataTables SELECT 所需CSS檔案 -->
+    <link rel="stylesheet"
+          href="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/css/select.dataTables.min.css' %}">
+
+    <link rel="stylesheet"
+          href="{% static 'assets/css/loader.css' %}">
+
+{% endblock %}
+
+<!-- 麵包屑導覽 -->
+{% block breadcrumb %}
+    <section class="content-header">
+        <h1>
+            CDN刷新預熱
+            <small>阿里雲</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li>
+                <a href="{% url 'assets:dashboard' %}"><i class="fa fa-dashboard"></i>主頁</a>
+            </li>
+            <li class="active">阿里CDN刷新預熱</li>
+        </ol>
+    </section>
+{% endblock %}
+
+{% block content %}
+
+    <!-- 頁面內容 -->
+    <section class="content">
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="box">
+                    <div class="box-body">
+                        <div>
+                            <label>操作帳號</label>
+                            <select id="account" class="form-control">
+                                <option value="pkkcococo">pkkcococo</option>
+                                <option value="madaochong">madaochong</option>
+                            </select>
+
+                            <label>操作類型</label>
+                            <select id="operation_type" class="form-control">
+                                <option value="refresh">刷新</option>
+                                <option value="push">預熱</option>
+                            </select>
+
+                            <label>刷新類型</label>
+                            <select id="refresh_type" class="form-control">
+                                <option value="dir">目錄</option>
+                                <option value="url">URL</option>
+                            </select>
+
+                            <label>URL</label>
+                            <textarea id ='url_txt' class="form-control" rows="3" placeholder="Enter ..."></textarea>
+
+                            <button style="margin-top:10px" type="submit" id="submit_btn" class="btn btn-primary">Submit</button>
+
+                            <div id="error_message" class="text-red" style="margin-top: 10px" ></div>
+                            <div id="url_preload_remain_div" style="margin-top: 10px" >URL預熱剩餘數量：{{ url_preload_Remain  }}</div>
+                            <div id="url_remain_div" style="margin-top: 10px" >URL刷新剩餘數量：{{ url_remain }}</div>
+                            <div id="dir_remain_div" style="margin-top: 10px" >目錄刷新剩餘數量：{{ dir_remain }}</div>
+
+                        </div>
+
+
+
+                    </div>
+
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+{% endblock %}
+
+{% block script %}
+
+    <script>
+
+        // 操作類型 , 如果是刷新的話提供兩種方式(目錄刷新和URL刷新), 預熱只提供一種方式(URL預熱)
+        $("#operation_type").change(
+            function () {
+                // 清空SELECT內的選項
+                $("#refresh_type").empty();
+
+                if ($("#operation_type").val() == "refresh"){
+                    // 加入選項
+                    $("#refresh_type").append("<option value='dir'>目錄</option>");
+                    $("#refresh_type").append("<option value='url'>URL</option>");
+                }else if ($("#operation_type").val() == "push") {
+                    // 加入選項
+                    $("#refresh_type").append("<option value='url'>URL</option>");
+                }
+        });
+
+        $("#submit_btn").click(
+            function () {
+
+                var requestURL = '/cmdb/aliyun-purge-cdn/';
+                var dataJSON = {};
+                dataJSON["url"] = $("#url_txt").val();
+                dataJSON["account"] = $("#account").val();
+                dataJSON["operation_type"] = $("#operation_type").val();
+                dataJSON["refresh_type"] = $("#refresh_type").val();
+                dataJSON["method"] = "refresh";
+
+                $.ajaxSetup({
+                  headers: { "X-CSRFToken": '{{csrf_token}}' }
+                });
+
+                $.ajax({
+                    url: requestURL,
+                    type: "POST",
+                    dataType: 'json',
+                    data: JSON.stringify(dataJSON),
+                    contentType: "application/json;charset=utf-8",
+                    beforeSend: function(){
+                        $("#submit_btn").prop('disabled', true);
+                    },
+                    success: function (returnData) {
+                        $("#error_message").text('刷新成功, 請等待五分鐘後全網生效');
+                        $("#submit_btn").prop('disabled', false);
+                        dataJSON["account"] = $("#account").val();
+                        dataJSON["method"] = "get_quota";
+                        $.ajax({
+                            url: requestURL,
+                            type: "POST",
+                            dataType: 'json',
+                            data: JSON.stringify(dataJSON),
+                            contentType: "application/json;charset=utf-8",
+                            success: function (data) {
+                                console.log("更新當前刷新剩餘使用數量");
+                                $("#dir_remain_div").text("目錄刷新剩餘數量：" + data['DirRemain']);
+                                $("#url_remain_div").text("URL刷新剩餘數量：" + data['UrlRemain']);
+                                $("#url_preload_remain_div").text("URL預熱剩餘數量：" + data['PreloadRemain']);
+
+                            },
+                            error: function (xhr, ajaxOptions, thrownError) {
+                                $("#error_message").text('請求失敗, 錯誤訊息: ' + xhr.responseJSON['message'] )
+                                console.log("HTTP Status: " + xhr.responseJSON['http_status']);
+                                console.log("Error Code: " + xhr.responseJSON['error_code']);
+                                console.log("Error Message: " + xhr.responseJSON['message']);
+                            }
+                        });
+
+
+                    },
+                    error: function (xhr, ajaxOptions, thrownError) {
+                        $("#error_message").text('請求失敗, 錯誤訊息: ' + xhr.responseJSON['message'] )
+                        console.log("HTTP Status: " + xhr.responseJSON['http_status']);
+                        console.log("Error Code: " + xhr.responseJSON['error_code']);
+                        console.log("Error Message: " + xhr.responseJSON['message']);
+                        $("#submit_btn").prop('disabled', false);
+
+                    }
+                });
+        });
+
+
+        $("#account").change(load_cdn_quota);
+
+        $(function () {
+            load_cdn_quota();
+
+        });
+
+
+        function load_cdn_quota() {
+            var requestURL = '/cmdb/aliyun-purge-cdn/';
+            var dataJSON = {};
+            dataJSON["account"] = $("#account").val();
+            dataJSON["method"] = "get_quota"
+            $.ajaxSetup({
+              headers: { "X-CSRFToken": '{{csrf_token}}' }
+            });
+
+            $.ajax({
+                url: requestURL,
+                type: "POST",
+                dataType: 'json',
+                data: JSON.stringify(dataJSON),
+                contentType: "application/json;charset=utf-8",
+                success: function (returnData) {
+                    console.log("更新當前刷新剩餘使用數量");
+                    $("#error_message").text("");
+                    $("#dir_remain_div").text("目錄刷新剩餘數量：" + returnData['DirRemain']);
+                    $("#url_remain_div").text("URL刷新剩餘數量：" + returnData['UrlRemain']);
+                    $("#url_preload_remain_div").text("URL預熱剩餘數量：" + returnData['PreloadRemain']);
+
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    $("#error_message").text('請求失敗, 錯誤訊息: ' + xhr.responseJSON['message'] )
+                    console.log("HTTP Status: " + xhr.responseJSON['http_status']);
+                    console.log("Error Code: " + xhr.responseJSON['error_code']);
+                    console.log("Error Message: " + xhr.responseJSON['message']);
+                    $("#submit_btn").prop('disabled', false);
+
+                }
+            });
+        }
+    </script>
+
+{% endblock %}

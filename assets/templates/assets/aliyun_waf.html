@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}阿里雲WAF{% endblock %}
+
+{% block css %}
+
+    <!-- DataTables 所需CSS檔案 -->
+    <link rel="stylesheet" href="{% static 'adminlte-2.4.10/bower_components/datatables.net-bs/css/dataTables.bootstrap.min.css' %}">
+
+    <!-- DataTables export file所需CSS檔案 -->
+    <link rel="stylesheet" href="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/css/buttons.dataTables.min.css' %}">
+
+{% endblock %}
+
+<!-- 麵包屑導覽 -->
+{% block breadcrumb %}
+    <section class="content-header">
+        <h1>
+            WAF
+            <small>阿里雲</small>
+        </h1>
+        <ol class="breadcrumb">
+            <li>
+                <a href="{% url 'assets:dashboard' %}"><i class="fa fa-dashboard"></i>主頁</a>
+            </li>
+            <li class="active">阿里WAF</li>
+        </ol>
+    </section>
+{% endblock %}
+
+{% block content %}
+
+    <!-- 頁面內容 -->
+    <section class="content">
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="box">
+                    <div class="box-body">
+                        <table id="assets_table" class="table table-bordered table-striped table-hover dataTable" >
+                            <thead>
+                                <tr>
+                                    <th>實例名稱</th>
+                                    <th>域名</th>
+                                    <th>回源IP</th>
+                                    <th>所屬帳號</th>
+                                </tr>
+                            </thead>
+
+                            <tfoot>
+                                <tr>
+                                    <th>實例名稱</th>
+                                    <th>域名</th>
+                                    <th>回源IP</th>
+                                    <th>所屬帳號</th>
+                                </tr>
+                            </tfoot>
+
+                        </table>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+{% endblock %}
+
+{% block script %}
+
+    <!-- JQuery & DataTables 所需JS檔案 -->
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net/js/jquery.dataTables.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-bs/js/dataTables.bootstrap.min.js' %}"></script>
+
+    <!-- DataTables export file所需JS檔案 -->
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/dataTables.buttons.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/buttons.flash.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/jszip.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/pdfmake.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/vfs_fonts.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/buttons.html5.min.js' %}"></script>
+    <script src="{% static 'adminlte-2.4.10/bower_components/datatables.net-buttons/js/buttons.print.min.js' %}"></script>
+
+
+    <!-- 自定義JS 以及 DataTable設置 -->
+    <script>
+
+        $(function () {
+
+            // 初始化DataTable
+            var table = $('#assets_table').DataTable({
+                "ajax": {                                                                   // 使用Ajax向後端取得數據
+                    url: "/cmdb/api/waf",                                                   // Ajax實際請求URI
+                    dataSrc: '',                                                            //
+                    beforeSend: function(xhr){                                              // 發送ajax請求之前先設置JWT auth 的header
+                        var token = getCookie('jwt_token');                                 // 從cookie中取得jwt產生的token
+                        xhr.setRequestHeader("Authorization","JWT " + token);               // 設定請求header
+                    },error: function (xhr, error, code){                                   // 異常訊息提示
+                        alert( 'JWT Token was expired, please logout and login again');     // 提示重新登入
+                        window.location.replace("/logout/");                                // 將用戶登出
+                    }
+                },
+                columns: [                                                                  // 設定每一欄要對應json返回的key
+                    { data: 'instance_id' },                                                // 阿里雲WAF實例ID
+                    { data: 'domain_name' },                                                // 配置了哪一些域名進行WAF防護
+                    { data: 'source_ip_addr' },                                             // 回源IP
+                    { data: 'belong_account' },                                             // 所屬帳號
+                ],
+                "paging": true,                                                             // 允許分頁
+                "iDisplayLength": 25,                                                       // 默認分頁數量
+                "lengthChange": true,                                                       // 允許改變每頁顯示的行數
+                "searching": true,                                                          // 允許內容搜索
+                "ordering": true,                                                           // 允許排序
+                "info": true,                                                               // 顯示信息
+                "autoWidth": true,                                                          // 固定寬度
+                // DataTable在建立每個欄位時會回調的內部方法。
+                "columnDefs": [
+                    {
+                        targets: 2 ,                                                        // 對應欄位索引二的欄位(從0開使)
+                        render: function ( data, type, row ) {
+                            var ip_list = "";                                               // 用來組html tag
+                            var list = data.split(",");                                     // 將IP列表使用逗號分割
+
+
+                            for (var i=0; i<list.length; i++ ) {
+                                ip_list = ip_list + list[i] + " ,<br>";                       // 用迴圈把IP和換行組好
+                            }
+
+                            return ip_list;                                                 // 返回
+                        }
+                    },{
+                        targets: 1,                                                         // 對應欄位索引二的欄位(從0開使)
+                        render: function ( data, type, row ) {
+                            url = '/cmdb/aliyun-waf/detail/' + data;                        // AJAX請求到後端URI,後端主要data值決定產生數據
+                            domain = data;                                                  // 域名 , 單純放入用來顯示
+
+                            // 設定新的彈跳視窗
+                            let html_tag = `
+                                <a href="#"
+                                   onclick='window.open("${url}", "Yahoo", config="height=500,width=500");'
+                                >${domain}</a>`;
+
+                            return html_tag;
+                        }
+                    },
+                ],
+                dom: 'Bfrtip',
+                bom: true,
+                buttons: [
+                    'copy',
+                    //'csv',
+                    'excel',
+                    //'pdf',
+                    //'print'
+                ]
+            });
+
+
+        });
+        
+
+
+    </script>
+
+{% endblock %}
