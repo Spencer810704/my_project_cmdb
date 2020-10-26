@@ -111,8 +111,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'cmdb',
         'USER': 'root',
-        'PASSWORD': 'ad357cc159',
-        'HOST': '172.16.160.140',
+        'PASSWORD': '213123412',
+        'HOST': '111.111.111.111',
         'PORT': '3306',
         'OPTIONS': {
             #  啟動mysql嚴格模式(strict mode)
